@@ -15,6 +15,10 @@ import curses.textpad
 
 import serial
 
+try:
+   input = raw_input
+except NameError:
+   pass
 
 class ConsoleTextbox(curses.textpad.Textbox):
     """
@@ -52,7 +56,7 @@ class Sermon:
     """
     def __init__(self, port, args):
         self.port = port
-        pass
+        self.serial = serial.Serial(port, args.baudrate, timeout=0.1)
 
     def serial_read_worker(self):
         n = 0
@@ -97,6 +101,9 @@ class Sermon:
             curses.wrapper(self.main)
         except KeyboardInterrupt:
             sys.exit()
+
+    def end(self):
+        self.serial.close()
 
 
 def serial_ports():
@@ -176,5 +183,9 @@ def main():
     else:
         port = commandline_args.port
 
-    sermon = Sermon(port, commandline_args)
-    sermon.start()
+    try:
+        sermon = Sermon(port, commandline_args)
+    except serial.serialutil.SerialException:
+        print('Could not open port %s' % port)
+        sys.exit(1)
+    #sermon.start()
