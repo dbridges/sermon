@@ -50,7 +50,7 @@ class ConsoleTextbox(curses.textpad.Textbox):
 
 class Sermon:
     """
-    The main serial monitor class. Starts a read thread that polls serial
+    The main serial monitor class. Starts a read thread that polls the serial
     port and prints results to top window. Sends commands to serial port after
     they have been executed in the curses textpad.
     """
@@ -59,14 +59,19 @@ class Sermon:
         self.serial = serial.Serial(port, args.baudrate, timeout=0.1)
 
     def serial_read_worker(self):
-        n = 0
+        """
+        Reads serial port and prints results to upper curses window.
+        """
         while True:
-            time.sleep(0.2)
-            self.read_window.addstr('hello %d\n' % n)
+            time.sleep(0.1)
+            num_bytes = self.serial.inWaiting()
+            if num_bytes < 1:
+                continue
+            data = self.serial.read(num_bytes)
+            self.read_window.addstr(data.decode('utf-8'))
             self.read_window.noutrefresh()
             self.send_window.noutrefresh()
             curses.doupdate()
-            n += 1
 
     def main(self, stdscr):
         # curses initialization
@@ -90,9 +95,8 @@ class Sermon:
         worker.start()
 
         while True:
-            message = box.edit()
-            self.read_window.addstr(message)
-            self.read_window.refresh()
+            command = box.edit()
+            self.serial.write(command.strip('\n\r').encode('utf-8'))
             self.send_window.erase()
             self.send_window.refresh()
 
