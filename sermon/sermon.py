@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 """
 The main application run loop.
 """
@@ -96,8 +98,12 @@ class Sermon:
         worker.start()
 
         while True:
-            command = box.edit()
-            self.serial.write(command.strip('\n\r').encode('utf-8'))
+            command = box.edit().strip('\n\r')
+            if self.args.n:
+                command += '\n'
+            if self.args.r:
+                command += '\r'
+            self.serial.write(command.encode('utf-8'))
             self.send_window.erase()
             self.send_window.refresh()
 
