@@ -6,10 +6,14 @@ The main application run loop.
 
 __version__ = "0.0.1"
 
-import argparse
-import glob
 import os
 import sys
+if os.name == 'nt':
+    print('sermon is not compatabile with Windows.')
+    sys.exit()
+
+import argparse
+import glob
 import threading
 import time
 import curses
@@ -141,18 +145,7 @@ def serial_devices():
     """
     Returns a list of the available serial devices.
     """
-    if os.name == 'nt':
-        # windows
-        devices = []
-        for i in range(256):
-            try:
-                s = serial.Serial(i)
-                s.close()
-                devices.append('COM%d' % (i+1))
-            except serial.SerialException:
-                pass
-        return devices
-    elif sys.platform == 'darwin' and sys.version_info.major == 3:
+    if sys.platform == 'darwin' and sys.version_info.major == 3:
         # pyserial's builtin port detection not working on mac with python 3
         return glob.glob('/dev/cu.*')
     else:
