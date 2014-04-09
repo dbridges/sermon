@@ -21,7 +21,7 @@ $ sermon -l
 Connect to a serial device with a baudrate of 115200 kbps:
 
 ```
-$ sermon /dev/tty.usbserial-A601EI5P 115200
+$ sermon -b 115200 /dev/tty.usbserial-A601EI5P
 ```
 
 With no arguments `sermon` queries the user to select an available device and defaults to a baudrate of 115200.
@@ -40,17 +40,30 @@ Select desired device [1-3]:
 
 ```
 $ sermon -h
-usage: sermon.py [-h] [-n] [-r] [-l] [device] [baudrate]
+usage: sermon-runner.py [-h] [--append APPEND] [--frame FRAME]
+                        [--bytesize {5,6,7,8}]
+                        [--parity {space,odd,mark,none,even}]
+                        [--stopbits {1,1.5,2}] [--xonxoff] [--rtscts]
+                        [--dsrdtr] [-b BAUDRATE] [-l]
+                        [device]
 
 Monitors specified serial device.
 
 positional arguments:
-  device      The path to the serial device.
-  baudrate    Baudrate, defaults to 115200.
+  device                Device name or path.
 
 optional arguments:
-  -h, --help  show this help message and exit
-  -n          Appends '\n' to commands before they are sent.
-  -r          Appends '\r' to commands before they are sent.
-  -l          List available serial devices.
+  -h, --help            show this help message and exit
+  -l, --list            List available serial devices.
+  -b BAUDRATE, --baudrate BAUDRATE
+                        Baudrate, defaults to 115200.
+  --append APPEND       Append given string to every command.
+  --frame FRAME         Frame command with given string.
+  --bytesize {5,6,7,8}  Number of data bits, defaults to 8.
+  --parity {space,odd,mark,none,even}
+                        Enable parity checking, defaults to none.
+  --stopbits {1,1.5,2}  Number of stop bits, defaults to 1.
+  --xonxoff             Enable software flow control.
+  --rtscts              Enable hardware (RTS/CTS) flow control.
+  --dsrdtr              Enable hardware (DSR/DTR) flow control.
 ```

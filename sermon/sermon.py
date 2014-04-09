@@ -17,11 +17,24 @@ import curses.textpad
 import signal
 
 import serial
+from serial.tools import list_ports
 
 try:
-   input = raw_input
+    input = raw_input
 except NameError:
-   pass
+    pass
+
+
+parity_values = {'none': serial.PARITY_NONE,
+                 'even': serial.PARITY_EVEN,
+                 'odd': serial.PARITY_ODD,
+                 'mark': serial.PARITY_MARK,
+                 'space': serial.PARITY_SPACE}
+
+stopbits_values = {'1': serial.STOPBITS_ONE,
+                   '1.5': serial.STOPBITS_ONE_POINT_FIVE,
+                   '2': serial.STOPBITS_TWO}
+
 
 class ConsoleTextbox(curses.textpad.Textbox):
     """
@@ -54,12 +67,22 @@ class ConsoleTextbox(curses.textpad.Textbox):
 class Sermon:
     """
     The main serial monitor class. Starts a read thread that polls the serial
-    device and prints results to top window. Sends commands to serial device after
-    they have been executed in the curses textpad.
+    device and prints results to top window. Sends commands to serial device
+    after they have been executed in the curses textpad.
     """
     def __init__(self, device, args):
         self.device = device
-        self.serial = serial.Serial(device, args.baudrate, timeout=0.1)
+        self.serial = serial.Serial(device,
+                                    baudrate=args.baudrate,
+                                    bytesize=args.bytesize,
+                                    parity=args.parity,
+                                    stopbits=args.stopbits,
+                                    xonxoff=args.xonxoff,
+                                    rtscts=args.rtscts,
+                                    dsrdtr=args.dsrdtr,
+                                    timeout=0.1)
+        self.serial.flushInput()
+        self.serial.flushOutput()
 
     def serial_read_worker(self):
         """
@@ -99,10 +122,10 @@ class Sermon:
 
         while True:
             command = box.edit().strip('\n\r')
-            if self.args.n:
-                command += '\n'
-            if self.args.r:
-                command += '\r'
+            command = ('%(frame)s%(command)s%(append)s%(frame)s' %
+                       {'frame': self.args.frame,
+                        'append': self.args.append,
+                        'command': command})
             self.serial.write(command.encode('utf-8'))
             self.send_window.erase()
             self.send_window.refresh()
@@ -129,8 +152,11 @@ def serial_devices():
             except serial.SerialException:
                 pass
         return devices
+    elif sys.platform == 'darwin' and sys.version_info.major == 3:
+        # pyserial's builtin port detection not working on mac with python 3
+        return glob.glob('/dev/cu.*')
     else:
-        return glob.glob('/dev/tty.*')  # Need this for python3 on mac.
+        return [p[0] for p in list_ports.comports()]
 
 
 def print_serial_devices():
@@ -157,30 +183,53 @@ def main():
     # Setup command line arguments
     parser = argparse.ArgumentParser(
         description='Monitors specified serial device.')
-    parser.add_argument('-n',
-                        action='store_true',
-                        help="Appends '\\n' to commands before they are sent.")
-    parser.add_argument('-r',
-                        action='store_true',
-                        help="Appends '\\r' to commands before they are sent.")
-    parser.add_argument('device',
-                        default=False,
-                        help='The path to the serial device.',
-                        nargs='?')
-    parser.add_argument('baudrate',
-                        help='Baudrate, defaults to 115200.',
-                        default=115200,
-                        nargs='?',
-                        type=int)
-    parser.add_argument('-l',
+    parser.add_argument('-l', '--list',
                         action='store_true',
                         default=False,
                         help='List available serial devices.')
+    parser.add_argument('-b', '--baudrate',
+                        help='Baudrate, defaults to 115200.',
+                        default=115200,
+                        type=int)
+    parser.add_argument('--append',
+                        type=str,
+                        default='',
+                        help='Append given string to every command.')
+    parser.add_argument('--frame',
+                        type=str,
+                        default='',
+                        help='Frame command with given string.')
+    parser.add_argument('--bytesize',
+                        choices=[5, 6, 7, 8],
+                        default=8,
+                        type=int,
+                        help='Number of data bits, defaults to 8.')
+    parser.add_argument('--parity',
+                        choices=list(parity_values.keys()),
+                        default='none',
+                        help='Enable parity checking, defaults to none.')
+    parser.add_argument('--stopbits',
+                        choices=['1', '1.5', '2'],
+                        default='1',
+                        help='Number of stop bits, defaults to 1.')
+    parser.add_argument('--xonxoff',
+                        action='store_true',
+                        help='Enable software flow control.')
+    parser.add_argument('--rtscts',
+                        action='store_true',
+                        help='Enable hardware (RTS/CTS) flow control.')
+    parser.add_argument('--dsrdtr',
+                        action='store_true',
+                        help='Enable hardware (DSR/DTR) flow control.')
+    parser.add_argument('device',
+                        default=False,
+                        help='Device name or path.',
+                        nargs='?')
 
     commandline_args = parser.parse_args()
 
     # List serial devices and exit for argument '-l'
-    if commandline_args.l:
+    if commandline_args.list:
         print_serial_devices()
         sys.exit()
 
@@ -190,9 +239,11 @@ def main():
         devices = serial_devices()
         if len(devices) > 0:
             print('')
-            [print('\t%d. %s' % (n+1, devices[n])) for n in range(len(devices))]
+            for n in range(len(devices)):
+                print('\t%d. %s' % (n+1, devices[n]))
             print('')
-            device_num = input('Select desired device [%d-%d]: ' % (1, len(devices)))
+            device_num = input('Select desired device [%d-%d]: '
+                               % (1, len(devices)))
             try:
                 device = devices[int(device_num) - 1]
             except (ValueError, IndexError):
@@ -204,10 +255,14 @@ def main():
     else:
         device = commandline_args.device
 
+    commandline_args.parity = parity_values[commandline_args.parity]
+    commandline_args.stopbits = stopbits_values[commandline_args.stopbits]
+
     try:
         sermon = Sermon(device, commandline_args)
-    except serial.serialutil.SerialException:
-        print('Could not open device %s' % device)
+    except serial.serialutil.SerialException as e:
+        #print('Could not open device %s' % device)
+        print(str(e))
         sys.exit(1)
 
     sermon.start()
