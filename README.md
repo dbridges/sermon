@@ -33,7 +33,7 @@ $ sermon
 	2. /dev/tty.Bluetooth-Modem
 	3. /dev/tty.usbserial-A601EI5P
 
-Select desired port [1-3]:
+Select desired device [1-3]:
 ```
 
 ### Usage
