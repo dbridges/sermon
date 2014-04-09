@@ -28,8 +28,12 @@ With no arguments `sermon` queries the user to select an available port and defa
 
 ```
 $ sermon
-Defaulting to 115200.
-Use /dev/tty.Bluetooth-Incoming-Port [y/n]:
+
+	1. /dev/tty.Bluetooth-Incoming-Port
+	2. /dev/tty.Bluetooth-Modem
+	3. /dev/tty.usbserial-A601EI5P
+
+Select desired port [1-3]:
 ```
 
 ### Usage

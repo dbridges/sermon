@@ -12,6 +12,7 @@ import threading
 import time
 import curses
 import curses.textpad
+import signal
 
 import serial
 
@@ -51,16 +52,16 @@ class ConsoleTextbox(curses.textpad.Textbox):
 class Sermon:
     """
     The main serial monitor class. Starts a read thread that polls the serial
-    port and prints results to top window. Sends commands to serial port after
+    device and prints results to top window. Sends commands to serial device after
     they have been executed in the curses textpad.
     """
-    def __init__(self, port, args):
-        self.port = port
-        self.serial = serial.Serial(port, args.baudrate, timeout=0.1)
+    def __init__(self, device, args):
+        self.device = device
+        self.serial = serial.Serial(device, args.baudrate, timeout=0.1)
 
     def serial_read_worker(self):
         """
-        Reads serial port and prints results to upper curses window.
+        Reads serial device and prints results to upper curses window.
         """
         while True:
             time.sleep(0.1)
@@ -101,59 +102,64 @@ class Sermon:
             self.send_window.refresh()
 
     def start(self):
-        try:
-            curses.wrapper(self.main)
-        except KeyboardInterrupt:
-            sys.exit()
+        curses.wrapper(self.main)
 
     def end(self):
         self.serial.close()
 
 
-def serial_ports():
+def serial_devices():
     """
-    Returns a list of the available serial ports.
+    Returns a list of the available serial devices.
     """
     if os.name == 'nt':
         # windows
-        ports = []
+        devices = []
         for i in range(256):
             try:
                 s = serial.Serial(i)
                 s.close()
-                ports.append('COM%d' % (i+1))
+                devices.append('COM%d' % (i+1))
             except serial.SerialException:
                 pass
-        return ports
+        return devices
     else:
         return glob.glob('/dev/tty.*')  # Need this for python3 on mac.
 
 
-def print_serial_ports():
+def print_serial_devices():
     """
-    Prints all of the available serial ports.
+    Prints all of the available serial devices.
     """
-    ports = serial_ports()
-    if len(ports) == 0:
+    devices = serial_devices()
+    if len(devices) == 0:
         print('No serial devices found.')
         return
-    for p in ports:
+    for p in devices:
         print(p)
 
 
+def signal_handler(signal, frame):
+    """
+    Handle KeyboardInterrupt.
+    """
+    sys.exit()
+
+
 def main():
+    signal.signal(signal.SIGINT, signal_handler)
     # Setup command line arguments
     parser = argparse.ArgumentParser(
-        description='Monitors specified serial port.')
+        description='Monitors specified serial device.')
     parser.add_argument('-n',
                         action='store_true',
                         help="Appends '\\n' to commands before they are sent.")
     parser.add_argument('-r',
                         action='store_true',
                         help="Appends '\\r' to commands before they are sent.")
-    parser.add_argument('port',
+    parser.add_argument('device',
                         default=False,
-                        help='The path to the serial port.',
+                        help='The path to the serial device.',
                         nargs='?')
     parser.add_argument('baudrate',
                         help='Baudrate, defaults to 115200.',
@@ -163,33 +169,39 @@ def main():
     parser.add_argument('-l',
                         action='store_true',
                         default=False,
-                        help='List available serial ports.')
+                        help='List available serial devices.')
 
     commandline_args = parser.parse_args()
 
-    # List serial ports and exit for argument '-l'
+    # List serial devices and exit for argument '-l'
     if commandline_args.l:
-        print_serial_ports()
+        print_serial_devices()
         sys.exit()
 
-    # If port is not specified, try to find which one to use.
-    port = None
-    if not commandline_args.port:
-        if len(serial_ports()) > 0:
-            for p in serial_ports():
-                response = input('Use %s [y/n]: ' % p)
-                if 'y' in response.lower():
-                    port = p
-                    break
+    # If device is not specified, prompt user to select an available device.
+    device = None
+    if not commandline_args.device:
+        devices = serial_devices()
+        if len(devices) > 0:
+            print('')
+            [print('\t%d. %s' % (n+1, devices[n])) for n in range(len(devices))]
+            print('')
+            device_num = input('Select desired device [%d-%d]: ' % (1, len(devices)))
+            try:
+                device = devices[int(device_num) - 1]
+            except (ValueError, IndexError):
+                print('\nInvalid device selection.')
+                sys.exit(1)
         else:
             print('No serial devices found.')
             sys.exit(1)
     else:
-        port = commandline_args.port
+        device = commandline_args.device
 
     try:
-        sermon = Sermon(port, commandline_args)
+        sermon = Sermon(device, commandline_args)
     except serial.serialutil.SerialException:
-        print('Could not open port %s' % port)
+        print('Could not open device %s' % device)
         sys.exit(1)
-    #sermon.start()
+
+    sermon.start()
