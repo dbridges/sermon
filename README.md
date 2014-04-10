@@ -67,3 +67,9 @@ optional arguments:
   --rtscts              Enable hardware (RTS/CTS) flow control.
   --dsrdtr              Enable hardware (DSR/DTR) flow control.
 ```
+
+### Todo
+
+- Add magic commands to execute special functions (ex. send the contents of a file over the serial port).
+- Log all received data to a file.
+- Allow raw bytes to be sent over command line, tentative syntax: ```$(0x7D,0x7B,0xFF)```

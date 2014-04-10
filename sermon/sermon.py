@@ -57,14 +57,45 @@ class ConsoleTextbox(curses.textpad.Textbox):
     def validator(self, ch):
         if ch == self.KEY_RETURN or ch == self.KEY_NEWLINE:
             return curses.ascii.ctrl(ord('g'))
-        if ch == self.KEY_BACKSPACE_MAC:
+        elif ch == self.KEY_BACKSPACE_MAC:
             return curses.ascii.ctrl(ord('h'))
+        elif ch == curses.KEY_UP:
+            # Cycle backwards in history, unless already as far back as we can
+            # go.
+            if self.history_pos == len(self.history):
+                # Already as far as we can go in history.
+                curses.beep()
+                return False
+            self.history_pos = limit(self.history_pos + 1,
+                                     1, len(self.history))
+            self.win.erase()
+            self.win.addstr(
+                self.history[-self.history_pos])
+            self.win.refresh()
+        elif ch == curses.KEY_DOWN:
+            # Cycle forwards in history.
+            if self.history_pos == 1:
+                self.history_pos = 0
+                self.win.erase()
+                self.win.refresh()
+                return False
+            elif self.history_pos == 0:
+                curses.beep()
+                return False
+
+            self.history_pos = limit(self.history_pos - 1,
+                                     1, len(self.history))
+            self.win.erase()
+            self.win.addstr(
+                self.history[-self.history_pos])
+            self.win.refresh()
         else:
             return ch
 
     def edit(self):
-        text = super(ConsoleTextbox, self).edit(self.validator)
-        self.history.append(text)
+        text = super(ConsoleTextbox, self).edit(self.validator).strip('\n\r')
+        self.history.append(text.strip())
+        self.history_pos = 0
         return text
 
 
@@ -127,7 +158,7 @@ class Sermon:
         worker.start()
 
         while True:
-            command = box.edit().strip('\n\r')
+            command = box.edit()
             command = ('%(frame)s%(command)s%(append)s%(frame)s' %
                        {'frame': self.frame,
                         'append': self.append,
@@ -141,6 +172,17 @@ class Sermon:
 
     def end(self):
         self.serial.close()
+
+
+def limit(n, minimum, maximum):
+    """
+    Limits n to be within minimum and maximum.
+    """
+    if n < minimum:
+        return minimum
+    elif n > maximum:
+        return maximum
+    return n
 
 
 def serial_devices():
