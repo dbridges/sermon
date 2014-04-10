@@ -127,9 +127,13 @@ class Sermon:
         Reads serial device and prints results to upper curses window.
         """
         while not self.kill:
-            data = self.serial.read(1)
+            data = self.serial.read(1).decode('latin1')
             if len(data) > 0:
-                self.read_window.addstr(data.decode('utf-8'))
+                try:
+                    self.read_window.addstr(data)
+                except TypeError:
+                    # Handle null bytes in string.
+                    continue
                 self.read_window.noutrefresh()
                 self.send_window.noutrefresh()
                 curses.doupdate()
@@ -163,7 +167,7 @@ class Sermon:
                        {'frame': self.frame,
                         'append': self.append,
                         'command': command})
-            self.serial.write(command.encode('utf-8'))
+            self.serial.write(command.encode('latin1'))
             self.send_window.erase()
             self.send_window.refresh()
 
