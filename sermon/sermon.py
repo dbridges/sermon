@@ -17,7 +17,6 @@ import glob
 import threading
 import curses
 import curses.textpad
-import signal
 import time
 
 import serial
@@ -171,7 +170,6 @@ class Sermon:
         while self.worker.is_alive():
             pass
 
-        self.serial.flushInput()
         self.serial.close()
 
     def start(self):
@@ -215,15 +213,7 @@ def print_serial_devices():
         print(p)
 
 
-def signal_handler(signal, frame):
-    """
-    Handle KeyboardInterrupt.
-    """
-    sys.exit()
-
-
 def main():
-    signal.signal(signal.SIGINT, signal_handler)
     # Setup command line arguments
     parser = argparse.ArgumentParser(
         description='Monitors specified serial device.')
@@ -280,21 +270,24 @@ def main():
     # If device is not specified, prompt user to select an available device.
     device = None
     if not commandline_args.device:
-        devices = serial_devices()
-        if len(devices) > 0:
-            print('')
-            for n in range(len(devices)):
-                print('\t%d. %s' % (n+1, devices[n]))
-            print('')
-            device_num = input('Select desired device [%d-%d]: '
-                               % (1, len(devices)))
-            try:
-                device = devices[int(device_num) - 1]
-            except (ValueError, IndexError):
-                print('\nInvalid device selection.')
+        try:
+            devices = serial_devices()
+            if len(devices) > 0:
+                print('')
+                for n in range(len(devices)):
+                    print('\t%d. %s' % (n+1, devices[n]))
+                print('')
+                device_num = input('Select desired device [%d-%d]: '
+                                   % (1, len(devices)))
+                try:
+                    device = devices[int(device_num) - 1]
+                except (ValueError, IndexError):
+                    print('\nInvalid device selection.')
+                    sys.exit(1)
+            else:
+                print('No serial devices found.')
                 sys.exit(1)
-        else:
-            print('No serial devices found.')
+        except KeyboardInterrupt:
             sys.exit(1)
     else:
         device = commandline_args.device
