@@ -75,6 +75,8 @@ class Sermon:
     after they have been executed in the curses textpad.
     """
     def __init__(self, device, args):
+        self.frame = args.frame
+        self.append = args.append
         self.device = device
         self.serial = serial.Serial(device,
                                     baudrate=args.baudrate,
@@ -104,17 +106,17 @@ class Sermon:
             curses.doupdate()
 
     def main(self, stdscr):
-        # curses initialization
+        # curses initialization.
+        curses.start_color()
+        curses.use_default_colors()
         stdscr.clear()
-        stdscr.addstr(curses.LINES - 1, 0, '> ')
+        stdscr.addstr(curses.LINES - 1, 0, ': ')
 
-        self.read_window = curses.newwin(curses.LINES - 2, curses.COLS)
+        self.read_window = curses.newwin(curses.LINES - 1, curses.COLS)
         self.read_window.scrollok(True)
 
-        self.send_window = curses.newwin(2, curses.COLS - 4,
+        self.send_window = curses.newwin(1, curses.COLS - 3,
                                          curses.LINES - 1, 2)
-
-        stdscr.hline(curses.LINES - 2, 0, curses.ACS_HLINE, curses.COLS)
 
         stdscr.refresh()
 
@@ -127,8 +129,8 @@ class Sermon:
         while True:
             command = box.edit().strip('\n\r')
             command = ('%(frame)s%(command)s%(append)s%(frame)s' %
-                       {'frame': self.args.frame,
-                        'append': self.args.append,
+                       {'frame': self.frame,
+                        'append': self.append,
                         'command': command})
             self.serial.write(command.encode('utf-8'))
             self.send_window.erase()
@@ -254,7 +256,6 @@ def main():
     try:
         sermon = Sermon(device, commandline_args)
     except serial.serialutil.SerialException as e:
-        #print('Could not open device %s' % device)
         print(str(e))
         sys.exit(1)
 
