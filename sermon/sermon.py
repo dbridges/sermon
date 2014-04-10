@@ -15,10 +15,10 @@ if os.name == 'nt':
 import argparse
 import glob
 import threading
-import time
 import curses
 import curses.textpad
 import signal
+import time
 
 import serial
 from serial.tools import list_ports
@@ -40,7 +40,7 @@ stopbits_values = {'1': serial.STOPBITS_ONE,
                    '2': serial.STOPBITS_TWO}
 
 
-class ConsoleTextbox(curses.textpad.Textbox):
+class ConsoleTextbox(curses.textpad.Textbox, object):
     """
     Implements a single line console like text box with history.
     """
@@ -106,11 +106,13 @@ class Sermon:
     after they have been executed in the curses textpad.
     """
     def __init__(self, device, args):
+        self.worker = None
+        self.kill = False
         self.frame = args.frame
         self.append = args.append
         self.device = device
         self.serial = serial.Serial(device,
-                                    baudrate=args.baudrate,
+                                    baudrate=args.baud,
                                     bytesize=args.bytesize,
                                     parity=args.parity,
                                     stopbits=args.stopbits,
@@ -118,23 +120,20 @@ class Sermon:
                                     rtscts=args.rtscts,
                                     dsrdtr=args.dsrdtr,
                                     timeout=0.1)
+        time.sleep(0.1)
         self.serial.flushInput()
-        self.serial.flushOutput()
 
     def serial_read_worker(self):
         """
         Reads serial device and prints results to upper curses window.
         """
-        while True:
-            time.sleep(0.1)
-            num_bytes = self.serial.inWaiting()
-            if num_bytes < 1:
-                continue
-            data = self.serial.read(num_bytes)
-            self.read_window.addstr(data.decode('utf-8'))
-            self.read_window.noutrefresh()
-            self.send_window.noutrefresh()
-            curses.doupdate()
+        while not self.kill:
+            data = self.serial.read(1)
+            if len(data) > 0:
+                self.read_window.addstr(data.decode('utf-8'))
+                self.read_window.noutrefresh()
+                self.send_window.noutrefresh()
+                curses.doupdate()
 
     def main(self, stdscr):
         # curses initialization.
@@ -145,19 +144,21 @@ class Sermon:
 
         self.read_window = curses.newwin(curses.LINES - 1, curses.COLS)
         self.read_window.scrollok(True)
+        self.read_window.erase()
 
         self.send_window = curses.newwin(1, curses.COLS - 3,
                                          curses.LINES - 1, 2)
+        self.send_window.erase()
 
         stdscr.refresh()
 
         box = ConsoleTextbox(self.send_window)
 
-        worker = threading.Thread(target=self.serial_read_worker)
-        worker.daemon = True
-        worker.start()
+        self.worker = threading.Thread(target=self.serial_read_worker)
+        self.worker.daemon = True
+        self.worker.start()
 
-        while True:
+        while not self.kill:
             command = box.edit()
             command = ('%(frame)s%(command)s%(append)s%(frame)s' %
                        {'frame': self.frame,
@@ -167,11 +168,17 @@ class Sermon:
             self.send_window.erase()
             self.send_window.refresh()
 
+        while self.worker.is_alive():
+            pass
+
+        self.serial.flushInput()
+        self.serial.close()
+
     def start(self):
         curses.wrapper(self.main)
 
-    def end(self):
-        self.serial.close()
+    def stop(self):
+        self.kill = True
 
 
 def limit(n, minimum, maximum):
@@ -224,7 +231,7 @@ def main():
                         action='store_true',
                         default=False,
                         help='List available serial devices.')
-    parser.add_argument('-b', '--baudrate',
+    parser.add_argument('-b', '--baud',
                         help='Baudrate, defaults to 115200.',
                         default=115200,
                         type=int)
@@ -301,4 +308,7 @@ def main():
         print(str(e))
         sys.exit(1)
 
-    sermon.start()
+    try:
+        sermon.start()
+    except KeyboardInterrupt:
+        sermon.stop()
