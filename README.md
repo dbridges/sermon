@@ -4,7 +4,7 @@ A command line serial monitor and transmitter written in python for use in posix
 
 ### Install
 
-Install python and pip, then:
+Install [python](http://www.python.org/), install [pip](http://pip.readthedocs.org/en/latest/installing.html), then:
 
 ```
 $ pip install sermon
@@ -12,25 +12,21 @@ $ pip install sermon
 
 ### Examples
 
-```
-usage: sermon [-h] [-n] [-r] [-l] [device] [baudrate]
-```
-
 List available serial devices:
 ```
 $ sermon -l
-/dev/tty.Bluetooth-Incoming-device
-/dev/tty.Bluetooth-Modem
-/dev/tty.usbserial-A601EI5P
+/dev/cu.Bluetooth-Incoming-device
+/dev/cu.Bluetooth-Modem
+/dev/cu.usbserial-A601EI5P
 ```
 
 Connect to a serial device with a baudrate of 115200 kbps:
 
 ```
-$ sermon -b 115200 /dev/tty.usbserial-A601EI5P
+$ sermon --baud=115200 /dev/tty.usbserial-A601EI5P
 ```
 
-With no arguments `sermon` queries the user to select an available device and defaults to a baudrate of 115200.
+If a device is not specified `sermon` queries the user to select an available device.
 
 ```
 $ sermon
@@ -45,13 +41,12 @@ Select desired device [1-3]:
 ### Usage
 
 ```
-$ sermon -h
-usage: sermon-runner.py [-h] [-l] [-b BAUD] [--append APPEND] [--frame FRAME]
-                        [--bytesize {5,6,7,8}]
-                        [--parity {even,none,space,odd,mark}]
-                        [--stopbits {1,1.5,2}] [--xonxoff] [--rtscts]
-                        [--dsrdtr]
-                        [device]
+usage: sermon [-h] [-v] [-l] [-b BAUD] [--append APPEND]
+              [--frame FRAME] [--bytesize {5,6,7,8}]
+              [--parity {even,none,space,odd,mark}]
+              [--stopbits {1,1.5,2}] [--xonxoff] [--rtscts]
+              [--dsrdtr]
+              [device]
 
 Monitors specified serial device.
 
@@ -60,6 +55,7 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  -v, --version         Show version.
   -l, --list            List available serial devices.
   -b BAUD, --baud BAUD  Baudrate, defaults to 115200.
   --append APPEND       Append given string to every command.
@@ -72,6 +68,14 @@ optional arguments:
   --rtscts              Enable hardware (RTS/CTS) flow control.
   --dsrdtr              Enable hardware (DSR/DTR) flow control.
 ```
+
+#### Detailed Options
+
+**append**
+Useful if you want to append newlines to each data packet, ```sermon --append='\n\r'```
+
+**frame**
+Surrounds command with the given string, useful for communicating to devices which are expecting frame boundaries. Any strings given with append are appended first, then the resutling string is prepended and appended with the string given in the frame option. If you are implementing [HDLC](http://en.wikipedia.org/wiki/High-Level_Data_Link_Control) protocol this could be useful: ```sermon --frame='~'```  (remember, '~' corresponds to 0x7E)
 
 ### Todo
 
