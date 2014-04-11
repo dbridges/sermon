@@ -138,6 +138,13 @@ class Sermon:
                 self.send_window.noutrefresh()
                 curses.doupdate()
 
+    def process_command(self, command):
+        processed_command = ('%(frame)s%(command)s%(append)s%(frame)s' %
+                    {'frame': self.frame,
+                    'append': self.append,
+                    'command': command})
+        return processed_command.encode('latin1')
+
     def main(self, stdscr):
         # curses initialization.
         curses.start_color()
@@ -163,11 +170,7 @@ class Sermon:
 
         while not self.kill:
             command = box.edit()
-            command = ('%(frame)s%(command)s%(append)s%(frame)s' %
-                       {'frame': self.frame,
-                        'append': self.append,
-                        'command': command})
-            self.serial.write(command.encode('latin1'))
+            self.serial.write(self.process_command(command))
             self.send_window.erase()
             self.send_window.refresh()
 
