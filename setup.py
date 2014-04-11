@@ -21,13 +21,13 @@ setup(
     keywords='serial monitor console arduino',
     install_requires=['pyserial'],
     classifiers=[
-        'Development Status :: 3 - Beta',
-        'License :: OSI Approved :: GPL3 License',
+        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
+        'Topic :: Terminals :: Serial'
     ],
     entry_points={
         'console_scripts': ['sermon=sermon.sermon:main']
