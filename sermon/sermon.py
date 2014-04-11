@@ -4,7 +4,7 @@
 The main application run loop.
 """
 
-__version__ = "0.0.3"
+__version__ = "0.0.4"
 
 import os
 import sys
@@ -221,6 +221,10 @@ def main():
     # Setup command line arguments
     parser = argparse.ArgumentParser(
         description='Monitors specified serial device.')
+    parser.add_argument('-v', '--version',
+                        action='store_true',
+                        default=False,
+                        help='Show version.')
     parser.add_argument('-l', '--list',
                         action='store_true',
                         default=False,
@@ -269,6 +273,9 @@ def main():
     # List serial devices and exit for argument '-l'
     if commandline_args.list:
         print_serial_devices()
+        sys.exit()
+    elif commandline_args.version:
+        print(__version__)
         sys.exit()
 
     # If device is not specified, prompt user to select an available device.

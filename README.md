@@ -2,6 +2,14 @@
 
 A command line serial monitor and transmitter written in python for use in posix systems. Sermon is not compatible with windows. Sermon performs the same function as the Arduino Serial Monitor, but is available on the command line. It depends on pyserial and python 2.7+ or python 3.3+ (may work with other versions).
 
+### Install
+
+Install python and pip, then:
+
+```
+$ pip install sermon
+```
+
 ### Examples
 
 ```
