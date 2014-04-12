@@ -49,7 +49,7 @@ class ConsoleTextbox(curses.textpad.Textbox, object):
     KEY_NEWLINE = ord('\n')
     KEY_RETURN = ord('\r')
 
-    def __init__(self, win, insert_mode=False):
+    def __init__(self, win, insert_mode=True):
         super(ConsoleTextbox, self).__init__(win, insert_mode)
         self.history = []
         self.history_pos = 0
