@@ -17,6 +17,7 @@ import glob
 import threading
 import curses
 import curses.textpad
+import re
 import time
 
 import serial
@@ -127,10 +128,15 @@ class Sermon:
         Reads serial device and prints results to upper curses window.
         """
         while not self.kill:
-            data = self.serial.read(1).decode('latin1')
+            data = self.serial.read()
             if len(data) > 0:
                 try:
-                    self.read_window.addstr(data)
+                    if data == '\r':
+                        continue
+                    elif data == '\n':
+                        self.read_window.addstr(data + '\r')
+                    else:
+                        self.read_window.addstr(data)
                 except TypeError:
                     # Handle null bytes in string.
                     continue
@@ -138,12 +144,32 @@ class Sermon:
                 self.send_window.noutrefresh()
                 curses.doupdate()
 
-    def process_command(self, command):
+    def write_list_of_bytes(self, string):
+        split_str = [s.strip() for s in string.split(',')]
+        for s in split_str:
+            try:
+                self.serial.write(chr(int(s, 0) % 255))
+            except:
+                pass
+
+    def write_command(self, command):
         processed_command = ('%(frame)s%(command)s%(append)s%(frame)s' %
-                    {'frame': self.frame,
-                    'append': self.append,
-                    'command': command})
-        return processed_command.encode('latin1')
+                             {'frame': self.frame,
+                              'append': self.append,
+                              'command': command}).encode('latin1')
+        # matches list of bytes $(0x08, 0x09, ... )
+        pattern = '(\$\(([^\)]+)\))'
+        strings = re.split(pattern, processed_command)
+        n = 0
+        while n < len(strings) - 1:
+            if strings[n][2:-1] == strings[n+1]:
+                # list of bytes
+                self.write_list_of_bytes(strings[n+1])
+                n += 2
+            else:
+                self.serial.write(strings[n])
+                n += 1
+        self.serial.write(strings[-1])
 
     def main(self, stdscr):
         # curses initialization.
@@ -169,8 +195,7 @@ class Sermon:
         self.worker.start()
 
         while not self.kill:
-            command = box.edit()
-            self.serial.write(self.process_command(command))
+            self.write_command(box.edit())
             self.send_window.erase()
             self.send_window.refresh()
 
