@@ -97,7 +97,8 @@ class ConsoleTextbox(curses.textpad.Textbox, object):
             return ch
 
     def edit(self):
-        text = super(ConsoleTextbox, self).edit(self.validator).strip('\n\r')
+        text = super(ConsoleTextbox, self).edit(self.validator)
+        logging.debug(repr(text))
         self.history.append(text.strip())
         self.history_pos = 0
         return text

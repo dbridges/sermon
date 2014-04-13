@@ -41,7 +41,7 @@ Select desired device [1-3]:
 Raw bytes can be sent using the ```$(0x48, ...)``` syntax. This is available for commands at the prompt as well as in any options given like ```--append``` and ```--frame```. Currently numbers greater than 255 are truncated to their least significant bits.
 
 ```
-$ sermon --frame='$(0x7E)    # Frame boundaries used in HDLC
+$ sermon --frame='$(0x7E)'    # Frame boundaries used in HDLC
 ```
 
 ### Usage
