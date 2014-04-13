@@ -4,6 +4,9 @@
 The main application run loop.
 """
 
+from __future__ import print_function
+from __future__ import unicode_literals
+
 __version__ = "0.0.4"
 
 import os
@@ -19,6 +22,7 @@ import curses
 import curses.textpad
 import re
 import time
+import logging
 
 import serial
 from serial.tools import list_ports
@@ -109,7 +113,9 @@ class Sermon:
         self.worker = None
         self.kill = False
         self.frame = args.frame
-        self.append = args.append
+        self.append = args.append.encode('latin1').decode('unicode_escape')
+        self.frame = args.frame.encode('latin1').decode('unicode_escape')
+        self.byte_list_pattern = re.compile('(\$\(([^\)]+)\))')
         self.device = device
         self.serial = serial.Serial(device,
                                     baudrate=args.baud,
@@ -130,16 +136,20 @@ class Sermon:
         while not self.kill:
             data = self.serial.read()
             if len(data) > 0:
+                # Need to reverse \r and \n for curses, otherwise it just
+                # clears the current line instead of making a new line. Also,
+                # translate single \n to \n\r so curses returns to the first
+                # column.
                 try:
-                    if data == '\r':
+                    if data == b'\r':
                         continue
-                    elif data == '\n':
-                        self.read_window.addstr(data + '\r')
+                    elif data == b'\n':
+                        self.read_window.addstr('\n\r')
                     else:
                         self.read_window.addstr(data)
-                except TypeError:
+                except UnicodeEncodeError or TypeError:
                     # Handle null bytes in string.
-                    continue
+                    raise
                 self.read_window.noutrefresh()
                 self.send_window.noutrefresh()
                 curses.doupdate()
@@ -148,7 +158,7 @@ class Sermon:
         split_str = [s.strip() for s in string.split(',')]
         for s in split_str:
             try:
-                self.serial.write(chr(int(s, 0) % 255))
+                self.serial.write(chr(int(s, 0) & 255).encode('latin1'))
             except:
                 pass
 
@@ -156,20 +166,19 @@ class Sermon:
         processed_command = ('%(frame)s%(command)s%(append)s%(frame)s' %
                              {'frame': self.frame,
                               'append': self.append,
-                              'command': command}).encode('latin1')
+                              'command': command})
         # matches list of bytes $(0x08, 0x09, ... )
-        pattern = '(\$\(([^\)]+)\))'
-        strings = re.split(pattern, processed_command)
+        strings = self.byte_list_pattern.split(processed_command)
         n = 0
         while n < len(strings) - 1:
-            if strings[n][2:-1] == strings[n+1]:
+            if self.byte_list_pattern.match(strings[n]):
                 # list of bytes
                 self.write_list_of_bytes(strings[n+1])
                 n += 2
             else:
-                self.serial.write(strings[n])
+                self.serial.write(strings[n].encode('latin1'))
                 n += 1
-        self.serial.write(strings[-1])
+        self.serial.write(strings[-1].encode('latin1'))
 
     def main(self, stdscr):
         # curses initialization.
@@ -247,6 +256,7 @@ def print_serial_devices():
 
 def main():
     # Setup command line arguments
+    logging.basicConfig(filename='example.log', level=logging.DEBUG)
     parser = argparse.ArgumentParser(
         description='Monitors specified serial device.')
     parser.add_argument('-v', '--version',
