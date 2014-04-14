@@ -7,7 +7,7 @@ The main application run loop.
 from __future__ import print_function
 from __future__ import unicode_literals
 
-__version__ = "0.0.4"
+__version__ = "0.0.5"
 
 import os
 import sys
@@ -18,14 +18,12 @@ if os.name == 'nt':
 import argparse
 import glob
 import threading
-import curses
-import curses.textpad
 import re
 import time
-import logging
 
 import serial
 from serial.tools import list_ports
+import urwid
 
 try:
     input = raw_input
@@ -44,78 +42,75 @@ stopbits_values = {'1': serial.STOPBITS_ONE,
                    '2': serial.STOPBITS_TWO}
 
 
-class ConsoleTextbox(curses.textpad.Textbox, object):
-    """
-    Implements a single line console like text box with history.
-    """
-
-    KEY_BACKSPACE_MAC = 0x7F
-    KEY_NEWLINE = ord('\n')
-    KEY_RETURN = ord('\r')
-
-    def __init__(self, win, insert_mode=True):
-        super(ConsoleTextbox, self).__init__(win, insert_mode)
+class ConsoleEdit(urwid.Edit):
+    def __init__(self, callback, *args, **kwargs):
+        super(ConsoleEdit, self).__init__(*args, **kwargs)
+        self.callback = callback
         self.history = []
         self.history_pos = 0
 
-    def validator(self, ch):
-        if ch == self.KEY_RETURN or ch == self.KEY_NEWLINE:
-            return curses.ascii.ctrl(ord('g'))
-        elif ch == self.KEY_BACKSPACE_MAC:
-            return curses.ascii.ctrl(ord('h'))
-        elif ch == curses.KEY_UP:
+    def keypress(self, size, key):
+        if key == 'enter':
+            self.callback(self.edit_text)
+            self.history.append(self.edit_text)
+            self.history_pos = 0
+            self.set_edit_text('')
+            return False
+        elif key == 'up':
             # Cycle backwards in history, unless already as far back as we can
             # go.
             if self.history_pos == len(self.history):
                 # Already as far as we can go in history.
-                curses.beep()
-                return False
+                beep()
+                return
             self.history_pos = limit(self.history_pos + 1,
                                      1, len(self.history))
-            self.win.erase()
-            self.win.addstr(
+            self.set_edit_text(
                 self.history[-self.history_pos])
-            self.win.refresh()
-        elif ch == curses.KEY_DOWN:
+            self.set_edit_pos(len(self.edit_text))
+        elif key == 'down':
             # Cycle forwards in history.
             if self.history_pos == 1:
                 self.history_pos = 0
-                self.win.erase()
-                self.win.refresh()
                 return False
             elif self.history_pos == 0:
-                curses.beep()
-                return False
+                beep()
+                return
 
             self.history_pos = limit(self.history_pos - 1,
                                      1, len(self.history))
-            self.win.erase()
-            self.win.addstr(
+            self.set_edit_text(
                 self.history[-self.history_pos])
-            self.win.refresh()
+            self.set_edit_pos(len(self.edit_text))
+            return
         else:
-            return ch
-
-    def edit(self):
-        text = super(ConsoleTextbox, self).edit(self.validator)
-        logging.debug(repr(text))
-        self.history.append(text.strip())
-        self.history_pos = 0
-        return text
+            return super(ConsoleEdit, self).keypress(size, key)
 
 
-class Sermon:
+class Sermon():
     """
     The main serial monitor class. Starts a read thread that polls the serial
     device and prints results to top window. Sends commands to serial device
     after they have been executed in the curses textpad.
     """
     def __init__(self, device, args):
-        self.worker = None
+        # Receive display widgets
+        self.receive_text = urwid.Text('')
+        body = urwid.ListBox([self.receive_text, urwid.Text('')])
+        body.set_focus(1)
+
+        # Send edit widgets
+        footer = ConsoleEdit(self.on_edit_done, ': ')
+
+        self.frame = urwid.Frame(body, footer=footer, focus_part='footer')
+        self.loop = urwid.MainLoop(self.frame)
+
+        self.fd = self.loop.watch_pipe(self.received_output)
+
         self.kill = False
-        self.frame = args.frame
-        self.append = args.append.encode('latin1').decode('unicode_escape')
-        self.frame = args.frame.encode('latin1').decode('unicode_escape')
+        self.append_text = args.append.encode(
+            'latin1').decode('unicode_escape')
+        self.frame_text = args.frame.encode('latin1').decode('unicode_escape')
         self.byte_list_pattern = re.compile('(\$\(([^\)]+)\))')
         self.device = device
         self.serial = serial.Serial(device,
@@ -129,6 +124,16 @@ class Sermon:
                                     timeout=0.1)
         time.sleep(0.1)
         self.serial.flushInput()
+
+        self.worker = threading.Thread(target=self.serial_read_worker)
+        self.worker.daemon = True
+
+    def on_edit_done(self, edit_text):
+        self.write_command(edit_text)
+
+    def received_output(self, data):
+        self.receive_text.set_text(self.receive_text.text +
+                                   data.decode('latin1'))
 
     def serial_read_worker(self):
         """
@@ -144,16 +149,11 @@ class Sermon:
                 try:
                     if data == b'\r':
                         continue
-                    elif data == b'\n':
-                        self.read_window.addstr('\n\r')
                     else:
-                        self.read_window.addstr(data)
+                        os.write(self.fd, data)
                 except UnicodeEncodeError or TypeError:
                     # Handle null bytes in string.
                     raise
-                self.read_window.noutrefresh()
-                self.send_window.noutrefresh()
-                curses.doupdate()
 
     def write_list_of_bytes(self, string):
         split_str = [s.strip() for s in string.split(',')]
@@ -165,8 +165,8 @@ class Sermon:
 
     def write_command(self, command):
         processed_command = ('%(frame)s%(command)s%(append)s%(frame)s' %
-                             {'frame': self.frame,
-                              'append': self.append,
+                             {'frame': self.frame_text,
+                              'append': self.append_text,
                               'command': command})
         # matches list of bytes $(0x08, 0x09, ... )
         strings = self.byte_list_pattern.split(processed_command)
@@ -181,44 +181,19 @@ class Sermon:
                 n += 1
         self.serial.write(strings[-1].encode('latin1'))
 
-    def main(self, stdscr):
-        # curses initialization.
-        curses.start_color()
-        curses.use_default_colors()
-        stdscr.clear()
-        stdscr.addstr(curses.LINES - 1, 0, ': ')
-
-        self.read_window = curses.newwin(curses.LINES - 1, curses.COLS)
-        self.read_window.scrollok(True)
-        self.read_window.erase()
-
-        self.send_window = curses.newwin(1, curses.COLS - 3,
-                                         curses.LINES - 1, 2)
-        self.send_window.erase()
-
-        stdscr.refresh()
-
-        box = ConsoleTextbox(self.send_window)
-
-        self.worker = threading.Thread(target=self.serial_read_worker)
-        self.worker.daemon = True
-        self.worker.start()
-
-        while not self.kill:
-            self.write_command(box.edit())
-            self.send_window.erase()
-            self.send_window.refresh()
-
-        while self.worker.is_alive():
-            pass
-
-        self.serial.close()
-
     def start(self):
-        curses.wrapper(self.main)
+        self.worker.start()
+        self.loop.run()
 
     def stop(self):
         self.kill = True
+        while self.worker.is_alive():
+            pass
+        self.serial.close()
+
+
+def beep():
+    sys.stdout.write('\a')
 
 
 def limit(n, minimum, maximum):
@@ -257,7 +232,6 @@ def print_serial_devices():
 
 def main():
     # Setup command line arguments
-    logging.basicConfig(filename='example.log', level=logging.DEBUG)
     parser = argparse.ArgumentParser(
         description='Monitors specified serial device.')
     parser.add_argument('-v', '--version',

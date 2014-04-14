@@ -20,7 +20,7 @@ setup(
     packages=['sermon'],
     license='GPL3',
     keywords='serial monitor console arduino',
-    install_requires=['pyserial'],
+    install_requires=['pyserial', 'urwid'],
     classifiers=[
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Programming Language :: Python :: 2',
