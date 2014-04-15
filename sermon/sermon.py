@@ -159,7 +159,10 @@ class Sermon():
         split_str = [s.strip() for s in string.split(',')]
         for s in split_str:
             try:
-                self.serial.write(chr(int(s, 0) & 255).encode('latin1'))
+                if sys.version_info.major == 3:
+                    self.serial.write(chr(int(s, 0) & 255).encode('latin1'))
+                else:
+                    self.serial.write(chr(int(s, 0) & 255))
             except:
                 pass
 
