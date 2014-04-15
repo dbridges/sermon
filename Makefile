@@ -6,6 +6,4 @@ all:
 	python setup.py sdist
 
 upload:
-	@open https://pypi.python.org/pypi
-	@sleep 0.3
-	@open dist
+	twine upload dist/sermon-0.0.6.tar.gz
