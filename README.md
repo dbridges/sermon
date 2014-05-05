@@ -12,6 +12,13 @@ Install [python](http://www.python.org/), install [pip](http://pip.readthedocs.o
 $ pip install sermon
 ```
 
+or if you are on a Mac use [homebrew](http://brew.sh/):
+
+```
+$ brew tap dbridges/formula
+$ brew install sermon
+```
+
 ### Examples
 
 List available serial devices:
