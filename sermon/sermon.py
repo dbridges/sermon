@@ -111,7 +111,8 @@ class Sermon():
         self.append_text = args.append.encode(
             'latin1').decode('unicode_escape')
         self.frame_text = args.frame.encode('latin1').decode('unicode_escape')
-        self.byte_list_pattern = re.compile('(\$\(([^\)]+)\))')
+        self.byte_list_pattern = re.compile(
+            '(\$\(([^\)]+?)\))|(\${([^\)]+?)})')
         self.device = device
         self.serial = serial.Serial(device,
                                     baudrate=args.baud,
@@ -156,15 +157,8 @@ class Sermon():
                     raise
 
     def write_list_of_bytes(self, string):
-        split_str = [s.strip() for s in string.split(',')]
-        for s in split_str:
-            try:
-                if sys.version_info.major == 3:
-                    self.serial.write(chr(int(s, 0) & 255).encode('latin1'))
-                else:
-                    self.serial.write(chr(int(s, 0) & 255))
-            except:
-                pass
+        byte_data = [int(s.strip(), 0) for s in string.split(',')]
+        self.serial.write(bytearray(byte_data))
 
     def write_command(self, command):
         processed_command = ('%(frame)s%(command)s%(append)s%(frame)s' %
@@ -175,7 +169,9 @@ class Sermon():
         strings = self.byte_list_pattern.split(processed_command)
         n = 0
         while n < len(strings) - 1:
-            if self.byte_list_pattern.match(strings[n]):
+            if strings[n] is None or strings[n] == '':
+                n += 1
+            elif self.byte_list_pattern.match(strings[n]):
                 # list of bytes
                 self.write_list_of_bytes(strings[n+1])
                 n += 2
