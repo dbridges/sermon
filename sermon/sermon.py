@@ -25,6 +25,8 @@ import serial
 from serial.tools import list_ports
 import urwid
 
+from .magics import magic
+
 try:
     input = raw_input
 except NameError:
@@ -99,11 +101,18 @@ class Sermon():
         body = urwid.ListBox([self.receive_text, urwid.Text('')])
         body.set_focus(1)
 
-        # Send edit widgets
-        footer = ConsoleEdit(self.on_edit_done, ': ')
-
-        self.frame = urwid.Frame(body, footer=footer, focus_part='footer')
-        self.loop = urwid.MainLoop(self.frame)
+        # Draw main frame with status header and footer for commands.
+        self.header = urwid.Text('', 'right')
+        self.frame = urwid.Frame(body,
+                                 header=urwid.AttrMap(self.header, 'statusbar'),
+                                 footer=ConsoleEdit(self.on_edit_done, ': '),
+                                 focus_part='footer')
+        palette = [
+            ('error', 'light red', 'black'),
+            ('status', 'dark green', 'black'),
+            ('statusbar', '', 'black')
+        ]
+        self.loop = urwid.MainLoop(self.frame, palette)
 
         self.fd = self.loop.watch_pipe(self.received_output)
 
@@ -125,12 +134,42 @@ class Sermon():
                                     timeout=0.1)
         time.sleep(0.1)
         self.serial.flushInput()
+        self.header.set_text(('status',
+                                    'Connected to %s' % self.serial.name))
 
         self.worker = threading.Thread(target=self.serial_read_worker)
         self.worker.daemon = True
 
     def on_edit_done(self, edit_text):
-        self.write_command(edit_text)
+        """
+        Callback called when editing is completed (after enter is pressed)
+        """
+        self.header.set_text(('status', 'Connected to %s' % self.serial.name))
+        if edit_text[0] == '%':
+            # Handle magic command.
+            try:
+                result = magic.execute(edit_text[1:])
+            except Exception as e:
+                self.header.set_text(('error', str(e)))
+            return
+        processed_command = ('%(frame)s%(command)s%(append)s%(frame)s' %
+                             {'frame': self.frame_text,
+                              'append': self.append_text,
+                              'command': edit_text})
+        # matches list of bytes $(0x08, 0x09, ... )
+        strings = self.byte_list_pattern.split(processed_command)
+        n = 0
+        while n < len(strings) - 1:
+            if strings[n] is None or strings[n] == '':
+                n += 1
+            elif self.byte_list_pattern.match(strings[n]):
+                # list of bytes
+                self.write_list_of_bytes(strings[n+1])
+                n += 2
+            else:
+                self.serial.write(strings[n].encode('latin1'))
+                n += 1
+        self.serial.write(strings[-1].encode('latin1'))
 
     def received_output(self, data):
         self.receive_text.set_text(self.receive_text.text +
@@ -160,26 +199,6 @@ class Sermon():
         byte_data = [int(s.strip(), 0) for s in string.split(',')]
         self.serial.write(bytearray(byte_data))
 
-    def write_command(self, command):
-        processed_command = ('%(frame)s%(command)s%(append)s%(frame)s' %
-                             {'frame': self.frame_text,
-                              'append': self.append_text,
-                              'command': command})
-        # matches list of bytes $(0x08, 0x09, ... )
-        strings = self.byte_list_pattern.split(processed_command)
-        n = 0
-        while n < len(strings) - 1:
-            if strings[n] is None or strings[n] == '':
-                n += 1
-            elif self.byte_list_pattern.match(strings[n]):
-                # list of bytes
-                self.write_list_of_bytes(strings[n+1])
-                n += 2
-            else:
-                self.serial.write(strings[n].encode('latin1'))
-                n += 1
-        self.serial.write(strings[-1].encode('latin1'))
-
     def start(self):
         self.worker.start()
         self.loop.run()
@@ -190,6 +209,14 @@ class Sermon():
             pass
         self.serial.close()
 
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
 
 def beep():
     sys.stdout.write('\a')
