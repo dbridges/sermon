@@ -110,3 +110,13 @@ def version(app, args):
     """
     return {'status': 'version ' + __version__,
             'bytes_to_send': None}
+
+
+@magic.cmd('exit')
+def exit(app, args):
+    """
+    Exits the program.
+    """
+    app.exit()
+    return {'status': None,
+            'bytes_to_send': None}

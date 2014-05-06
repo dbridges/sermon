@@ -229,6 +229,10 @@ class Sermon():
             pass
         self.serial.close()
 
+    def exit(self):
+        self.stop()
+        raise urwid.ExitMainLoop()
+
 
 def main():
     # Setup command line arguments
