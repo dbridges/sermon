@@ -4,13 +4,17 @@
 Handle Magic commands.
 """
 
+import os
 import shlex
+import argparse
+
 from .sermon import __version__
 
 
 class MagicRunner(object):
-    def __init__(self):
+    def __init__(self, app=None):
         self.cmds = {}
+        self.app = app
 
     def cmd(self, cmd):
         """
@@ -45,7 +49,7 @@ class MagicRunner(object):
 
         cmd, *args = shlex.split(cmd_str)
         if cmd in self.cmds:
-            return self.cmds[cmd](args)
+            return self.cmds[cmd](self.app, args)
         else:
             raise AttributeError("Command '%s' not found." % cmd)
 
@@ -53,17 +57,55 @@ class MagicRunner(object):
 magic = MagicRunner()
 
 
+@magic.cmd('logstart')
+def logstart(app, cmd_args):
+    """
+    Starts logging received serial data to specified logfile.
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument('filename', type=str)
+    args = parser.parse_args(cmd_args)
+    filename = os.path.expanduser(args.filename)
+
+    try:
+        f = open(filename, 'w')
+        f.close()
+    except:
+        raise ValueError('Invalid filename specified.')
+
+    app.logfile = filename
+    app.logging = True
+
+    return {'status': 'Logging to %s started.' % app.logfile,
+            'bytes_to_send': None}
+
+
 @magic.cmd('logon')
-def logon(args):
+def logoff(app, args):
     """
-    Turns on logging.
+    Resumes logging. Logging must have already been started with %logstart.
     """
-    return {'status': 'Logging started.', 'bytes_to_send': None}
+    if app.logfile is None:
+        raise ValueError("No logfile specified.")
+    app.logging = True
+    return {'status': 'Logging resumed.',
+            'bytes_to_send': None}
+
+
+@magic.cmd('logoff')
+def logoff(app, args):
+    """
+    Turns off logging.
+    """
+    app.logging = False
+    return {'status': 'Logging stopped.',
+            'bytes_to_send': None}
 
 
 @magic.cmd('version')
-def version(args):
+def version(app, args):
     """
     Returns the current version number.
     """
-    return {'status': __version__, 'bytes_to_send': None}
+    return {'status': 'version ' + __version__,
+            'bytes_to_send': None}

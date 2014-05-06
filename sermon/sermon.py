@@ -110,7 +110,7 @@ class Sermon():
             focus_part='footer')
         palette = [
             ('error', 'light red', 'black'),
-            ('status', 'dark green', 'black'),
+            ('ok', 'dark green', 'black'),
             ('statusbar', '', 'black')
         ]
         self.loop = urwid.MainLoop(self.frame, palette)
@@ -135,24 +135,37 @@ class Sermon():
                                     timeout=0.1)
         time.sleep(0.1)
         self.serial.flushInput()
-        self.header.set_text(('status', 'Connected to %s' % self.serial.name))
+        self.update_status('ok', 'Connected to %s' % self.serial.name)
 
         self.worker = threading.Thread(target=self.serial_read_worker)
         self.worker.daemon = True
+
+        self.logging = False
+        self.logfile = None
+        magic.app = self
+
+    def update_status(self, status, text):
+        self.header.set_text((status, text))
 
     def on_edit_done(self, edit_text):
         """
         Callback called when editing is completed (after enter is pressed)
         """
-        self.header.set_text(('status', 'Connected to %s' % self.serial.name))
+        if len(edit_text) < 1:
+            return
+        status_text = 'Connected to %s' % self.serial.name
         if edit_text[0] == '%':
             # Handle magic command.
             try:
                 result = magic.execute(edit_text[1:])
-                self.header.set_text(result['status'])
-            except Exception as e:
-                self.header.set_text(('error', str(e)))
+                if result['status'] is not None:
+                    self.update_status('ok', result['status'])
+            except (AttributeError, ValueError) as e:
+                self.update_status('error', str(e))
             return
+        if self.logging:
+            status_text += ', logging to %s' % self.logfile
+        self.update_status('ok', status_text)
         processed_command = ('%(frame)s%(command)s%(append)s%(frame)s' %
                              {'frame': self.frame_text,
                               'append': self.append_text,
@@ -175,6 +188,12 @@ class Sermon():
     def received_output(self, data):
         self.receive_text.set_text(self.receive_text.text +
                                    data.decode('latin1'))
+        if self.logging:
+            try:
+                with open(self.logfile, 'a') as f:
+                    f.write(data.decode('latin1'))
+            except:
+                self.update_status('error', 'Error writing to logfile.')
 
     def serial_read_worker(self):
         """
