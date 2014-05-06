@@ -161,6 +161,8 @@ class Sermon():
                 result = magic.execute(edit_text[1:])
                 if result['status'] is not None:
                     self.update_status('ok', result['status'])
+                if result['bytes_to_send'] is not None:
+                    self.serial.write(result['bytes_to_send'])
             except (util.ArgumentParseError, AttributeError, ValueError) as e:
                 self.update_status('error', str(e))
             return
@@ -324,12 +326,12 @@ def main():
     commandline_args.stopbits = stopbits_values[commandline_args.stopbits]
 
     try:
-        sermon = Sermon(device, commandline_args)
+        app = Sermon(device, commandline_args)
     except serial.serialutil.SerialException as e:
-        print(str(e))
+        print(e)
         sys.exit(1)
 
     try:
-        sermon.start()
+        app.start()
     except KeyboardInterrupt:
-        sermon.stop()
+        app.stop()

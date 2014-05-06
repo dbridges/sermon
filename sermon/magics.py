@@ -82,7 +82,7 @@ def logstart(app, cmd_args):
 
 
 @magic.cmd('logon')
-def logoff(app, args):
+def logon(app, args):
     """
     Resumes logging. Logging must have already been started with %logstart.
     """
@@ -112,10 +112,30 @@ def version(app, args):
             'bytes_to_send': None}
 
 
+@magic.cmd('send')
+def send(app, args):
+    """
+    Sends the contents of the given file to the serial device.
+    """
+    parser = ThrowingArgumentParser()
+    parser.add_argument('filename', type=str)
+    args = parser.parse_args(cmd_args)
+    filename = os.path.expanduser(args.filename)
+
+    try:
+        with open(filename, 'rb') as f:
+            data = f.read()
+    except:
+        raise ValueError('Unable to read file.')
+
+    return {'status': 'Sent %s' % filename,
+            'bytes_to_send': data}
+
+
 @magic.cmd('exit')
 def exit(app, args):
     """
-    Exits the program.
+    Exits the app.
     """
     app.exit()
     return {'status': None,
