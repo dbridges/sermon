@@ -15,17 +15,16 @@ if os.name == 'nt':
     print('sermon is not compatabile with Windows.')
     sys.exit()
 
-import argparse
-import glob
 import threading
 import re
 import time
+import argparse
 
 import serial
-from serial.tools import list_ports
 import urwid
 
-from .magics import magic
+from sermon.magics import magic
+import sermon.util as util
 
 try:
     input = raw_input
@@ -63,10 +62,10 @@ class ConsoleEdit(urwid.Edit):
             # go.
             if self.history_pos == len(self.history):
                 # Already as far as we can go in history.
-                beep()
+                util.beep()
                 return
-            self.history_pos = limit(self.history_pos + 1,
-                                     1, len(self.history))
+            self.history_pos = util.limit(self.history_pos + 1,
+                                          1, len(self.history))
             self.set_edit_text(
                 self.history[-self.history_pos])
             self.set_edit_pos(len(self.edit_text))
@@ -76,11 +75,11 @@ class ConsoleEdit(urwid.Edit):
                 self.history_pos = 0
                 return False
             elif self.history_pos == 0:
-                beep()
+                util.beep()
                 return
 
-            self.history_pos = limit(self.history_pos - 1,
-                                     1, len(self.history))
+            self.history_pos = util.limit(self.history_pos - 1,
+                                          1, len(self.history))
             self.set_edit_text(
                 self.history[-self.history_pos])
             self.set_edit_pos(len(self.edit_text))
@@ -102,7 +101,9 @@ class Sermon():
         body.set_focus(1)
 
         # Draw main frame with status header and footer for commands.
-        self.header = urwid.Text('', 'right')
+        self.conection_msg = urwid.Text('', 'left')
+        self.status_msg = urwid.Text('', 'right')
+        self.header = urwid.Columns([self.conection_msg, self.status_msg])
         self.frame = urwid.Frame(
             body,
             header=urwid.AttrMap(self.header, 'statusbar'),
@@ -135,7 +136,7 @@ class Sermon():
                                     timeout=0.1)
         time.sleep(0.1)
         self.serial.flushInput()
-        self.update_status('ok', 'Connected to %s' % self.serial.name)
+        self.conection_msg.set_text(('ok', self.serial.name))
 
         self.worker = threading.Thread(target=self.serial_read_worker)
         self.worker.daemon = True
@@ -145,27 +146,26 @@ class Sermon():
         magic.app = self
 
     def update_status(self, status, text):
-        self.header.set_text((status, text))
+        self.status_msg.set_text((status, text))
 
     def on_edit_done(self, edit_text):
         """
         Callback called when editing is completed (after enter is pressed)
         """
         if len(edit_text) < 1:
+            self.update_status('ok', '')
             return
-        status_text = 'Connected to %s' % self.serial.name
         if edit_text[0] == '%':
             # Handle magic command.
             try:
                 result = magic.execute(edit_text[1:])
                 if result['status'] is not None:
                     self.update_status('ok', result['status'])
-            except (AttributeError, ValueError) as e:
+            except (util.ArgumentParseError, AttributeError, ValueError) as e:
                 self.update_status('error', str(e))
             return
         if self.logging:
-            status_text += ', logging to %s' % self.logfile
-        self.update_status('ok', status_text)
+            self.update_status('ok', 'Logging to %s' % self.logfile)
         processed_command = ('%(frame)s%(command)s%(append)s%(frame)s' %
                              {'frame': self.frame_text,
                               'append': self.append_text,
@@ -230,44 +230,6 @@ class Sermon():
         self.serial.close()
 
 
-def beep():
-    sys.stdout.write('\a')
-
-
-def limit(n, minimum, maximum):
-    """
-    Limits n to be within minimum and maximum.
-    """
-    if n < minimum:
-        return minimum
-    elif n > maximum:
-        return maximum
-    return n
-
-
-def serial_devices():
-    """
-    Returns a list of the available serial devices.
-    """
-    if sys.platform == 'darwin' and sys.version_info.major == 3:
-        # pyserial's builtin port detection not working on mac with python 3
-        return glob.glob('/dev/cu.*')
-    else:
-        return [p[0] for p in list_ports.comports()]
-
-
-def print_serial_devices():
-    """
-    Prints all of the available serial devices.
-    """
-    devices = serial_devices()
-    if len(devices) == 0:
-        print('No serial devices found.')
-        return
-    for p in devices:
-        print(p)
-
-
 def main():
     # Setup command line arguments
     parser = argparse.ArgumentParser(
@@ -323,7 +285,7 @@ def main():
 
     # List serial devices and exit for argument '-l'
     if commandline_args.list:
-        print_serial_devices()
+        util.print_serial_devices()
         sys.exit()
     elif commandline_args.version:
         print(__version__)
@@ -333,7 +295,7 @@ def main():
     device = None
     if not commandline_args.device:
         try:
-            devices = serial_devices()
+            devices = util.serial_devices()
             if len(devices) > 0:
                 print('')
                 for n in range(len(devices)):

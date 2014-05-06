@@ -9,6 +9,7 @@ import shlex
 import argparse
 
 from .sermon import __version__
+from .util import ThrowingArgumentParser, ArgumentParseError
 
 
 class MagicRunner(object):
@@ -62,7 +63,7 @@ def logstart(app, cmd_args):
     """
     Starts logging received serial data to specified logfile.
     """
-    parser = argparse.ArgumentParser()
+    parser = ThrowingArgumentParser()
     parser.add_argument('filename', type=str)
     args = parser.parse_args(cmd_args)
     filename = os.path.expanduser(args.filename)
@@ -86,7 +87,7 @@ def logoff(app, args):
     Resumes logging. Logging must have already been started with %logstart.
     """
     if app.logfile is None:
-        raise ValueError("No logfile specified.")
+        raise ValueError("Logging must first be started with %logstart.")
     app.logging = True
     return {'status': 'Logging resumed.',
             'bytes_to_send': None}
