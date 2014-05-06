@@ -7,7 +7,7 @@ The main application run loop.
 from __future__ import print_function
 from __future__ import unicode_literals
 
-__version__ = "0.0.6"
+__version__ = "0.0.7"
 
 import os
 import sys
@@ -103,10 +103,11 @@ class Sermon():
 
         # Draw main frame with status header and footer for commands.
         self.header = urwid.Text('', 'right')
-        self.frame = urwid.Frame(body,
-                                 header=urwid.AttrMap(self.header, 'statusbar'),
-                                 footer=ConsoleEdit(self.on_edit_done, ': '),
-                                 focus_part='footer')
+        self.frame = urwid.Frame(
+            body,
+            header=urwid.AttrMap(self.header, 'statusbar'),
+            footer=ConsoleEdit(self.on_edit_done, ': '),
+            focus_part='footer')
         palette = [
             ('error', 'light red', 'black'),
             ('status', 'dark green', 'black'),
@@ -134,8 +135,7 @@ class Sermon():
                                     timeout=0.1)
         time.sleep(0.1)
         self.serial.flushInput()
-        self.header.set_text(('status',
-                                    'Connected to %s' % self.serial.name))
+        self.header.set_text(('status', 'Connected to %s' % self.serial.name))
 
         self.worker = threading.Thread(target=self.serial_read_worker)
         self.worker.daemon = True
@@ -149,6 +149,7 @@ class Sermon():
             # Handle magic command.
             try:
                 result = magic.execute(edit_text[1:])
+                self.header.set_text(result['status'])
             except Exception as e:
                 self.header.set_text(('error', str(e)))
             return
@@ -209,14 +210,6 @@ class Sermon():
             pass
         self.serial.close()
 
-
-class bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
 
 def beep():
     sys.stdout.write('\a')
