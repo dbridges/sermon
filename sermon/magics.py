@@ -137,6 +137,15 @@ def send(app, cmd_args):
             'bytes_to_send': data}
 
 
+@magic.cmd('clear')
+def clear(app, args):
+    """
+    Clears the received data window.
+    """
+    app.receive_window.set_text('')
+    return {'status': None,
+            'bytes_to_send': None}
+
 @magic.cmd('exit')
 def exit(app, args):
     """

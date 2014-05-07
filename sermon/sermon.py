@@ -97,8 +97,8 @@ class Sermon():
     """
     def __init__(self, device, args):
         # Receive display widgets
-        self.receive_text = urwid.Text('')
-        body = urwid.ListBox([self.receive_text, urwid.Text('')])
+        self.receive_window = urwid.Text('')
+        body = urwid.ListBox([self.receive_window, urwid.Text('')])
         body.set_focus(1)
 
         # Draw main frame with status header and footer for commands.
@@ -117,7 +117,7 @@ class Sermon():
         ]
         self.loop = urwid.MainLoop(self.frame, palette)
 
-        self.fd = self.loop.watch_pipe(self.received_output)
+        self.fd = self.loop.watch_pipe(self.received_data)
 
         self.kill = False
         self.append_text = args.append.encode(
@@ -188,9 +188,9 @@ class Sermon():
                 n += 1
         self.serial.write(strings[-1].encode('latin1'))
 
-    def received_output(self, data):
-        self.receive_text.set_text(self.receive_text.text +
-                                   data.decode('latin1'))
+    def received_data(self, data):
+        self.receive_window.set_text(self.receive_window.text +
+                                     data.decode('latin1'))
         if self.logging:
             try:
                 with open(self.logfile, 'a') as f:
