@@ -22,6 +22,7 @@ $ brew install sermon
 ### Examples
 
 List available serial devices:
+
 ```
 $ sermon -l
 /dev/cu.Bluetooth-Incoming-device
@@ -35,7 +36,7 @@ Connect to a serial device with a baudrate of 115200 kbps:
 $ sermon --baud=115200 /dev/tty.usbserial-A601EI5P
 ```
 
-If a device is not specified `sermon` queries the user to select an available device.
+If a device is not specified ```sermon``` queries the user to select an available device.
 
 ```
 $ sermon
