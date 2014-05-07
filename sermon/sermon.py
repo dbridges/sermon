@@ -6,8 +6,8 @@ The main application run loop.
 
 from __future__ import print_function
 from __future__ import unicode_literals
-
-__version__ = "0.0.7"
+from __future__ import absolute_import
+from __future__ import division
 
 import os
 import sys
@@ -23,8 +23,9 @@ import argparse
 import serial
 import urwid
 
-from sermon.magics import magic
+import sermon
 import sermon.util as util
+from sermon.magics import magic
 
 try:
     input = raw_input
@@ -294,7 +295,7 @@ def main():
         util.print_serial_devices()
         sys.exit()
     elif commandline_args.version:
-        print(__version__)
+        print(sermon.__version__)
         sys.exit()
 
     # If device is not specified, prompt user to select an available device.

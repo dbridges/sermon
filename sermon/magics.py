@@ -4,12 +4,16 @@
 Handle Magic commands.
 """
 
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from __future__ import division
+
 import os
 import shlex
-import argparse
 
-from .sermon import __version__
-from .util import ThrowingArgumentParser, ArgumentParseError
+import sermon
+from sermon.util import ThrowingArgumentParser
 
 
 class MagicRunner(object):
@@ -47,8 +51,9 @@ class MagicRunner(object):
         response : dict or None
             The dict should have the following keys: 'status', 'bytes_to_send'.
         """
-
-        cmd, *args = shlex.split(cmd_str)
+        split_str = shlex.split(cmd_str)
+        cmd = split_str[0]
+        args = split_str[1:] if len(split_str) > 1 else []
         if cmd in self.cmds:
             return self.cmds[cmd](self.app, args)
         else:
@@ -108,12 +113,12 @@ def version(app, args):
     """
     Returns the current version number.
     """
-    return {'status': 'version ' + __version__,
+    return {'status': 'version ' + sermon.__version__,
             'bytes_to_send': None}
 
 
 @magic.cmd('send')
-def send(app, args):
+def send(app, cmd_args):
     """
     Sends the contents of the given file to the serial device.
     """
