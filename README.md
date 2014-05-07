@@ -66,7 +66,7 @@ Exit sermon.
 `%send [FILE]`
 Send the contents of the given file to the connected serial device.
 
-``%logstart [FILE]`
+`%logstart [FILE]`
 Start logging all received data to the given file.
 
 `%logon`
