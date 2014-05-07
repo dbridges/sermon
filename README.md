@@ -36,7 +36,7 @@ Connect to a serial device with a baudrate of 115200 kbps:
 $ sermon --baud=115200 /dev/tty.usbserial-A601EI5P
 ```
 
-If a device is not specified ```sermon``` queries the user to select an available device.
+If a device is not specified `sermon` queries the user to select an available device.
 
 ```
 $ sermon
@@ -48,7 +48,7 @@ $ sermon
 Select desired device [1-3]:
 ```
 
-Raw bytes can be sent using the ```$(0x48, 0x44, ...)``` syntax. This syntax is available at the prompt as well as in any options given. Numbers greater than 255 are truncated to their least significant bits.
+Raw bytes can be sent using the `$(0x48, 0x44, ...)` syntax. This syntax is available at the prompt as well as in any options given. Numbers greater than 255 are truncated to their least significant bits.
 
 ```
 $ sermon --frame='$(0x7E)'    # Frame boundaries used in HDLC
@@ -60,20 +60,20 @@ Once connected to a device, type text at the prompt, then press enter to send. R
 
 Similar to IPython, sermon employs a limited set of magic commands to access certain useful functions at the prompt.
 
-```%exit```
+`%exit`
 Exit sermon.
 
-```%send [FILE]```
+`%send [FILE]`
 Send the contents of the given file to the connected serial device.
 
-```%logstart [FILE]```
+``%logstart [FILE]`
 Start logging all received data to the given file.
 
-```%logon```
-Resume logging after a ```%logoff```. ```%logstart``` must be called prior to using ```%logoff``` or ```%logon```.
+`%logon`
+Resume logging after a `%logoff`. `%logstart` must be called prior to using `%logoff` or `%logon`.
 
-```%logoff```
-Temporarily stop logging. Logging can be resumed using ```%logon```.
+`%logoff`
+Temporarily stop logging. Logging can be resumed using `%logon`.
 
 ### Usage
 
@@ -109,7 +109,7 @@ optional arguments:
 #### Detailed Options
 
 **append**
-Useful if you want to append newlines to each data packet, ```sermon --append='\n'```
+Useful if you want to append newlines to each data packet, `sermon --append='\n'`
 
 **frame**
-Surrounds command with the given string, useful for communicating to devices which are expecting frame boundaries. If ```--append``` and ```--frame``` are used together any strings given with ```--append``` are appended first, then the resulting string is surrouned by the string given in the ```--frame``` option. If you are implementing [HDLC](http://en.wikipedia.org/wiki/High-Level_Data_Link_Control) protocol this could be useful: ```sermon --frame='$(0x7E)'```  
+Surrounds command with the given string, useful for communicating to devices which are expecting frame boundaries. If `--append` and `--frame` are used together any strings given with `--append` are appended first, then the resulting string is surrouned by the string given in the `--frame` option. If you are implementing [HDLC](http://en.wikipedia.org/wiki/High-Level_Data_Link_Control) protocol this could be useful: `sermon --frame='$(0x7E)'`  
