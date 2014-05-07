@@ -1,6 +1,6 @@
 # Sermon
 
-A command line serial monitor and transmitter written in python for use in posix systems. Sermon is not compatible with windows. Sermon performs the same function as the Arduino Serial Monitor, but is available on the command line. It depends on pyserial and python 2.7+ or python 3.3+ (may work with other versions).
+A command line serial monitor and transmitter written in python for use in POSIX systems. Sermon performs the same function as the Arduino Serial Monitor, but is available on the command line, and offers some additional capabilities like the ability to send lists of raw bytes, data from files, and can log received data to a file.
 
 ![alt tag](http://www.dayofthenewdan.com/images/sermon_screen.png "Sermon screenshot.")
 
@@ -12,7 +12,7 @@ Install [python](http://www.python.org/), install [pip](http://pip.readthedocs.o
 $ pip install sermon
 ```
 
-or if you are on a Mac use [homebrew](http://brew.sh/):
+if you are on a Mac you can also use [homebrew](http://brew.sh/):
 
 ```
 $ brew tap dbridges/formula
@@ -47,11 +47,32 @@ $ sermon
 Select desired device [1-3]:
 ```
 
-Raw bytes can be sent using the ```$(0x48, ...)``` syntax. This is available for commands at the prompt as well as in any options given like ```--append``` and ```--frame```. Currently numbers greater than 255 are truncated to their least significant bits.
+Raw bytes can be sent using the ```$(0x48, 0x44, ...)``` syntax. This syntax is available at the prompt as well as in any options given. Numbers greater than 255 are truncated to their least significant bits.
 
 ```
 $ sermon --frame='$(0x7E)'    # Frame boundaries used in HDLC
 ```
+
+Once connected to a device, type text at the prompt, then press enter to send. Received data will automatically be displayed in the top window.
+
+### Magic Commands
+
+Similar to IPython, sermon employs a limited set of magic commands to access certain useful functions at the prompt.
+
+```%exit```
+Exit sermon.
+
+```%send [FILE]```
+Send the contents of the given file to the connected serial device.
+
+```%logstart [FILE]```
+Start logging all received data to the given file.
+
+```%logon```
+Resume logging after a ```%logoff```. ```%logstart``` must be called prior to using ```%logoff``` or ```%logon```.
+
+```%logoff```
+Temporarily stop logging. Logging can be resumed using ```%logon```.
 
 ### Usage
 
@@ -90,9 +111,4 @@ optional arguments:
 Useful if you want to append newlines to each data packet, ```sermon --append='\n'```
 
 **frame**
-Surrounds command with the given string, useful for communicating to devices which are expecting frame boundaries. Any strings given with append are appended first, then the resulting string is prepended and appended with the string given in the frame option. If you are implementing [HDLC](http://en.wikipedia.org/wiki/High-Level_Data_Link_Control) protocol this could be useful: ```sermon --frame='$(0x7E)'```  
-### Todo
-
-- Add magic commands to execute special functions (ex. send the contents of a file over the serial port).
-- Log all received data to a file.
-- <del>Allow raw bytes to be sent over command line, tentative syntax: ```$(0x7D,0x7B,0xFF)```</del> *Implemented*.
+Surrounds command with the given string, useful for communicating to devices which are expecting frame boundaries. If ```--append``` and ```--frame``` are used together any strings given with ```--append``` are appended first, then the resulting string is surrouned by the string given in the ```--frame``` option. If you are implementing [HDLC](http://en.wikipedia.org/wiki/High-Level_Data_Link_Control) protocol this could be useful: ```sermon --frame='$(0x7E)'```  
