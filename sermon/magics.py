@@ -33,7 +33,13 @@ class MagicRunner(object):
             concise and not contain any whitespace.
         """
         def decorator(f):
-            self.cmds[cmd] = f
+            if isinstance(cmd, list):
+                for item in cmd:
+                    self.cmds[item] = f
+            elif isinstance(cmd, str):
+                self.cmds[cmd] = f
+            else:
+                raise TypeError('Magic command must be list or str.')
             return f
         return decorator
 
@@ -63,7 +69,7 @@ class MagicRunner(object):
 magic = MagicRunner()
 
 
-@magic.cmd('logstart')
+@magic.cmd(['logstart', 'ls'])
 def logstart(app, cmd_args):
     """
     Starts logging received serial data to specified logfile.
@@ -86,7 +92,7 @@ def logstart(app, cmd_args):
             'bytes_to_send': None}
 
 
-@magic.cmd('logon')
+@magic.cmd(['logon', 'lo'])
 def logon(app, args):
     """
     Resumes logging. Logging must have already been started with %logstart.
@@ -98,7 +104,7 @@ def logon(app, args):
             'bytes_to_send': None}
 
 
-@magic.cmd('logoff')
+@magic.cmd(['logoff', 'lf'])
 def logoff(app, args):
     """
     Turns off logging.
@@ -108,7 +114,7 @@ def logoff(app, args):
             'bytes_to_send': None}
 
 
-@magic.cmd('version')
+@magic.cmd(['version', 'v'])
 def version(app, args):
     """
     Returns the current version number.
@@ -117,7 +123,7 @@ def version(app, args):
             'bytes_to_send': None}
 
 
-@magic.cmd('send')
+@magic.cmd(['send', 's'])
 def send(app, cmd_args):
     """
     Sends the contents of the given file to the serial device.
@@ -137,7 +143,7 @@ def send(app, cmd_args):
             'bytes_to_send': data}
 
 
-@magic.cmd('clear')
+@magic.cmd(['clear', 'c'])
 def clear(app, args):
     """
     Clears the received data window.
@@ -146,7 +152,8 @@ def clear(app, args):
     return {'status': None,
             'bytes_to_send': None}
 
-@magic.cmd('exit')
+
+@magic.cmd(['exit', 'quit', 'q'])
 def exit(app, args):
     """
     Exits the app.

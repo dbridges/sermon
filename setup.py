@@ -4,10 +4,13 @@ import re
 from setuptools import setup
 
 version = re.search(
-    '^__version__\s*=\s*"(.*)"',
+    "^__version__\s*=\s*'(.*)'",
     open('sermon/__init__.py').read(),
     re.M
     ).group(1)
+
+with open('sermon/__init__.py') as f:
+    version = f.read()
 
 
 long_descr = """`Full Documentation
