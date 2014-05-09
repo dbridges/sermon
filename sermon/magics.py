@@ -167,7 +167,7 @@ def help(app, args):
 @magic.cmd(['about', 'a'])
 def about(app, args):
     """
-    Displays an overlay with About inforamation.
+    Displays an overlay with About information.
     """
     app.overlay(about_str)
     return {'status': None,

@@ -36,7 +36,7 @@ Connect to a serial device with a baud rate of 115200 kbps:
 $ sermon --baud=115200 /dev/tty.usbserial-A601EI5P
 ```
 
-If a device is not specified `sermon` queries the user to select an available device.
+If a device is not specified Sermon queries the user to select an available device.
 
 ```
 $ sermon
@@ -58,10 +58,16 @@ Once connected to a device, type text at the prompt, then press enter to send. R
 
 ### Magic Commands
 
-Similar to IPython, sermon employs a limited set of magic commands to access certain useful functions at the prompt.
+Similar to IPython, Sermon employs a limited set of magic commands to access certain useful functions at the prompt.
+
+`%help`, `%h`
+Display help.
+
+`%about`, `%a`
+Display information about Sermon.
 
 `%exit`, `%quit`, `%q`
-Exit sermon.
+Exit Sermon.
 
 `%send [FILE]`, `%s [FILE]`
 Send the contents of the given file to the connected serial device.
