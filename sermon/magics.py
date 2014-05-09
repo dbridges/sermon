@@ -153,6 +153,37 @@ def clear(app, args):
             'bytes_to_send': None}
 
 
+@magic.cmd(['help', 'h'])
+def help(app, args):
+    """
+    Clears the received data window.
+    """
+    app.overlay(
+"""
+`%exit`, `%quit`, `%q`
+Exit sermon.
+
+`%send [FILE]`, `%s [FILE]`
+Send the contents of the given file to the connected serial device.
+
+`%logstart [FILE]`, `%ls [FILE]`
+Start logging all received data to the given file.
+
+`%logon`, `%lo`
+Resume logging after a `%logoff`. `%logstart` must be called prior to using `%logoff` or `%logon`.
+
+`%logoff`, `%lf`
+Temporarily stop logging. Logging can be resumed using `%logon`.
+
+`%clear`, `%c`
+Clear the received data window.
+
+`%version`, `%v`
+Display the current version.""")
+    return {'status': None,
+            'bytes_to_send': None}
+
+
 @magic.cmd(['exit', 'quit', 'q'])
 def exit(app, args):
     """

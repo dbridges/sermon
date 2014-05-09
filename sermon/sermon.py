@@ -89,7 +89,7 @@ class ConsoleEdit(urwid.Edit):
             return super(ConsoleEdit, self).keypress(size, key)
 
 
-class Sermon():
+class Sermon(object):
     """
     The main serial monitor class. Starts a read thread that polls the serial
     device and prints results to top window. Sends commands to serial device
@@ -115,7 +115,8 @@ class Sermon():
             ('ok', 'dark green', 'black'),
             ('statusbar', '', 'black')
         ]
-        self.loop = urwid.MainLoop(self.frame, palette)
+        self.loop = urwid.MainLoop(self.frame, palette,
+                                   unhandled_input=self.unhandled_key_handler)
 
         self.fd = self.loop.watch_pipe(self.received_data)
 
@@ -148,6 +149,10 @@ class Sermon():
 
     def update_status(self, status, text):
         self.status_msg.set_text((status, text))
+
+    def unhandled_key_handler(self, key):
+        if key in ('q', 'esc'):
+            self.loop.widget = self.frame
 
     def on_edit_done(self, edit_text):
         """
@@ -187,6 +192,16 @@ class Sermon():
                 self.serial.write(strings[n].encode('latin1'))
                 n += 1
         self.serial.write(strings[-1].encode('latin1'))
+
+    def overlay(self, content):
+        text = urwid.Text(content)
+        self.loop.widget = urwid.Overlay(urwid.Filler(text),
+                                         self.frame,
+                                         align='center',
+                                         width=('relative', 80),
+                                         valign='top',
+                                         height=('relative', 80),
+                                         top=1)
 
     def received_data(self, data):
         self.receive_window.set_text(self.receive_window.text +
