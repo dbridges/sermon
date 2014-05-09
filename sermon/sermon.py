@@ -26,6 +26,7 @@ import urwid
 import sermon
 import sermon.util as util
 from sermon.magics import magic
+from sermon.resources import help_status_str
 
 try:
     input = raw_input
@@ -87,6 +88,40 @@ class ConsoleEdit(urwid.Edit):
             return
         else:
             return super(ConsoleEdit, self).keypress(size, key)
+
+
+class ScrollingTextOverlay(urwid.Overlay):
+    def __init__(self, content, bottom_widget):
+        """
+        Parameters
+        ----------
+        content : str
+            The contents to display in the overlay widget.
+        bottom_widget : urwid.Widget
+            The original widget that the overlay appears over.
+        """
+        listbox = urwid.ListBox([urwid.Text(content)])
+        frame = urwid.Frame(listbox,
+                            header=urwid.AttrMap(
+                                urwid.Text(help_status_str), 'statusbar'))
+
+        super(ScrollingTextOverlay, self).__init__(
+            frame, bottom_widget,
+            align='center', width=('relative', 100),
+            valign='top', height=('relative', 100),
+            left=0, right=0,
+            top=0, bottom=0)
+
+    def keypress(self, size, key):
+        if key == 'j':
+            key = 'down'
+        elif key == 'k':
+            key = 'up'
+        elif key == 'ctrl d':
+            key = 'page down'
+        elif key == 'ctrl u':
+            key = 'page up'
+        return super(ScrollingTextOverlay, self).keypress(size, key)
 
 
 class Sermon(object):
@@ -194,14 +229,15 @@ class Sermon(object):
         self.serial.write(strings[-1].encode('latin1'))
 
     def overlay(self, content):
-        text = urwid.Text(content)
-        self.loop.widget = urwid.Overlay(urwid.Filler(text),
-                                         self.frame,
-                                         align='center',
-                                         width=('relative', 80),
-                                         valign='top',
-                                         height=('relative', 80),
-                                         top=1)
+        """
+        Shows the given content in an overlay window above the main frame.
+
+        Parameters
+        ----------
+        content : str
+            The text content to display over the main frame.
+        """
+        self.loop.widget = ScrollingTextOverlay(content, self.frame)
 
     def received_data(self, data):
         self.receive_window.set_text(self.receive_window.text +

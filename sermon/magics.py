@@ -14,6 +14,7 @@ import shlex
 
 import sermon
 from sermon.util import ThrowingArgumentParser
+from sermon.resources import help_str, about_str
 
 
 class MagicRunner(object):
@@ -156,30 +157,19 @@ def clear(app, args):
 @magic.cmd(['help', 'h'])
 def help(app, args):
     """
-    Clears the received data window.
+    Displays the help overlay.
     """
-    app.overlay(
-"""
-`%exit`, `%quit`, `%q`
-Exit sermon.
+    app.overlay(help_str)
+    return {'status': None,
+            'bytes_to_send': None}
 
-`%send [FILE]`, `%s [FILE]`
-Send the contents of the given file to the connected serial device.
 
-`%logstart [FILE]`, `%ls [FILE]`
-Start logging all received data to the given file.
-
-`%logon`, `%lo`
-Resume logging after a `%logoff`. `%logstart` must be called prior to using `%logoff` or `%logon`.
-
-`%logoff`, `%lf`
-Temporarily stop logging. Logging can be resumed using `%logon`.
-
-`%clear`, `%c`
-Clear the received data window.
-
-`%version`, `%v`
-Display the current version.""")
+@magic.cmd(['about', 'a'])
+def about(app, args):
+    """
+    Displays an overlay with About inforamation.
+    """
+    app.overlay(about_str)
     return {'status': None,
             'bytes_to_send': None}
 
