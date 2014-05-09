@@ -6,4 +6,4 @@ all:
 	python setup.py sdist
 
 upload:
-	twine upload dist/sermon-0.0.6.tar.gz
+	twine upload dist/sermon-1.0.0.tar.gz

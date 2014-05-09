@@ -48,10 +48,10 @@ $ sermon
 Select desired device [1-3]:
 ```
 
-Raw bytes can be sent using the `$(0x48, 0x44, ...)` syntax. This syntax is available at the prompt as well as in any options given. Numbers greater than 255 are truncated to their least significant bits.
+Raw bytes can be sent using the `${0x48, 0x44, ...}` syntax. This syntax is available at the prompt as well as in any options given. Numbers greater than 255 are truncated to their least significant bits.
 
 ```
-$ sermon --frame='$(0x7E)'    # Frame boundaries used in HDLC
+$ sermon --frame='${0x7E}'    # Frame boundaries used in HDLC
 ```
 
 Once connected to a device, type text at the prompt, then press enter to send. Received data will automatically be displayed in the top window.
@@ -124,4 +124,4 @@ optional arguments:
 Useful if you want to append newlines to each data packet, `sermon --append='\n'`
 
 **frame**
-Surrounds command with the given string, useful for communicating to devices which are expecting frame boundaries. If `--append` and `--frame` are used together any strings given with `--append` are appended first, then the resulting string is surround by the string given in the `--frame` option. If you are implementing [HDLC](http://en.wikipedia.org/wiki/High-Level_Data_Link_Control) protocol this could be useful: `sermon --frame='$(0x7E)'`  
+Surrounds command with the given string, useful for communicating to devices which are expecting frame boundaries. If `--append` and `--frame` are used together any strings given with `--append` are appended first, then the resulting string is surround by the string given in the `--frame` option. If you are implementing [HDLC](http://en.wikipedia.org/wiki/High-Level_Data_Link_Control) protocol this could be useful: `sermon --frame='${0x7E}'`  
