@@ -9,10 +9,6 @@ version = re.search(
     re.M
     ).group(1)
 
-with open('sermon/__init__.py') as f:
-    version = f.read()
-
-
 long_descr = """`Full Documentation
 <http://github.com/dbridges/sermon>`_.
 """
