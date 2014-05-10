@@ -9,4 +9,4 @@ clean:
 	rm -f -r build/*
 
 upload:
-	twine upload dist/sermon-1.0.0.tar.gz
+	twine upload dist/sermon-1.0.1.tar.gz
