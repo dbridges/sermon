@@ -2,3 +2,4 @@ build
 dist
 env*
 sermon.egg*
+.ropeproject
