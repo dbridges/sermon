@@ -1,17 +1,18 @@
-.PHONY: all run run-with-race clean install uninstall release
+.PHONY: run run-with-race clean install uninstall release
 
 VERSION=0.1.0
 GO_SRC = $(shell find . -iname '*.go')
+GO_MAIN=cmd/main.go
 BINDIR?=/usr/local/bin
 BINNAME?=sermon
 
 all: dist/$(BINNAME)
 
 dist/$(BINNAME): $(GO_SRC) dist
-	go build -ldflags "-X main.Version=$(VERSION)" -o $@
+	go build -ldflags "-X main.Version=$(VERSION)" -o $@ $(GO_MAIN)
 
 run:
-	@go run $(GO_SRC)
+	@go run $(GO_MAIN)
 
 run-with-race:
 	@GORACE="log_path=race_log" go run -race *.go

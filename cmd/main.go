@@ -5,22 +5,15 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/dbridges/sermon/app"
 	"github.com/dbridges/sermon/util"
 )
 
 // Version is auto set from the Makefile
 var Version string
 
-// SerialConfig stores attributes needed to setup the serial port
-type SerialConfig struct {
-	device   string
-	baud     int
-	dataBits int
-	stopBits int
-}
-
 func usage() {
-	fmt.Println("usage: sermon [--baud b] [--databits d] [--stopbits s] [device]")
+	fmt.Println("usage: sermon [--baud b] [device]")
 	flag.PrintDefaults()
 }
 
@@ -47,30 +40,28 @@ func promptDevice() (string, error) {
 }
 
 func main() {
-	cfg := SerialConfig{}
+	cfg := app.Config{}
 
 	flag.Usage = usage
 
-	flag.IntVar(&cfg.baud, "baud", 9600, "set baud rate")
-	flag.IntVar(&cfg.dataBits, "databits", 8, "set number of data bits")
-	flag.IntVar(&cfg.stopBits, "stopbits", 1, "set number of stop bits")
+	flag.IntVar(&cfg.Baud, "baud", 9600, "set baud rate")
 
 	flag.Parse()
 
 	if flag.NArg() == 1 {
 		if flag.Arg(0) == "help" {
 			flag.Usage()
-			return
+			os.Exit(0)
 		}
-		cfg.device = flag.Arg(0)
+		cfg.Device = flag.Arg(0)
 	} else {
 		d, err := promptDevice()
 		if err != nil {
 			os.Stderr.WriteString(fmt.Sprintf("Error selecting device: %v\n", err))
 			os.Exit(1)
 		}
-		cfg.device = d
+		cfg.Device = d
 	}
 
-	fmt.Println(cfg)
+	app.New(cfg).Run()
 }
